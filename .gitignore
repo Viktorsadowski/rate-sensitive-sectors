@@ -1,0 +1,12 @@
+# keys
+.env
+
+# everything in data is rebuilt by the scripts, only the small hand-made tables are kept
+data/*
+!data/manual/
+!data/.gitkeep
+
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

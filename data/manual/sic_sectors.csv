@@ -1,0 +1,85 @@
+# SIC code ranges -> GICS sector, for companies that are no longer in the S&P 500 and so not on today's list.
+# Made by hand. The first line that fits wins, so narrow ranges come before the wide one they sit in.
+# Checked against today's members, where both the SIC code and the GICS sector are known (src/classes.py prints it).
+lo,hi,sector
+100,999,Consumer Staples
+1000,1099,Materials
+1200,1299,Energy
+1300,1399,Energy
+1400,1499,Materials
+1520,1531,Consumer Discretionary
+1500,1799,Industrials
+2000,2199,Consumer Staples
+2200,2399,Consumer Discretionary
+2451,2452,Consumer Discretionary
+2400,2499,Materials
+2520,2522,Industrials
+2500,2599,Consumer Discretionary
+2600,2699,Materials
+2750,2769,Industrials
+2700,2799,Communication Services
+2833,2836,Health Care
+2840,2844,Consumer Staples
+2800,2899,Materials
+2900,2999,Energy
+3011,3021,Consumer Discretionary
+3000,3099,Materials
+3100,3199,Consumer Discretionary
+3200,3399,Materials
+3411,3412,Materials
+3400,3499,Industrials
+3533,3533,Energy
+3570,3579,Information Technology
+3500,3599,Industrials
+3630,3639,Consumer Discretionary
+3650,3659,Consumer Discretionary
+3660,3679,Information Technology
+3600,3699,Industrials
+3711,3711,Consumer Discretionary
+3714,3714,Consumer Discretionary
+3751,3751,Consumer Discretionary
+3790,3799,Consumer Discretionary
+3700,3799,Industrials
+3812,3812,Industrials
+3826,3826,Health Care
+3841,3851,Health Care
+3820,3829,Industrials
+3861,3861,Information Technology
+3800,3899,Consumer Discretionary
+3900,3999,Consumer Discretionary
+4400,4400,Consumer Discretionary
+4600,4699,Energy
+4700,4700,Consumer Discretionary
+4000,4799,Industrials
+4800,4899,Communication Services
+4922,4923,Energy
+4950,4959,Industrials
+4900,4999,Utilities
+5045,5045,Information Technology
+5047,5047,Health Care
+5065,5065,Information Technology
+5122,5122,Health Care
+5140,5149,Consumer Staples
+5172,5172,Energy
+5000,5199,Industrials
+5331,5331,Consumer Staples
+5399,5499,Consumer Staples
+5912,5912,Consumer Staples
+5200,5999,Consumer Discretionary
+6324,6324,Health Care
+6500,6599,Real Estate
+6798,6798,Real Estate
+6000,6799,Financials
+7000,7299,Consumer Discretionary
+7310,7319,Communication Services
+7370,7370,Communication Services
+7371,7379,Information Technology
+7389,7389,Financials
+7300,7399,Industrials
+7500,7599,Industrials
+7800,7849,Communication Services
+7900,7999,Consumer Discretionary
+8000,8099,Health Care
+8200,8299,Consumer Discretionary
+8731,8731,Health Care
+8700,8799,Industrials

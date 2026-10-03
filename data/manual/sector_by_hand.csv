@@ -1,0 +1,20 @@
+# A sector by hand for companies that left the index, where the SIC code is missing or points to the wrong sector.
+# Today's GICS sectors, so Yahoo and the game publishers are Communication Services as they would be now.
+ticker,cik,sector,why
+AABA,1011006,Communication Services,Yahoo (later Altaba). No SIC code at the SEC
+ACAS,817473,Financials,American Capital. No SIC code at the SEC
+ATVI,718877,Communication Services,Activision Blizzard. SIC says software
+EA,712515,Communication Services,Electronic Arts. SIC says software
+ETSY,1370637,Consumer Discretionary,Etsy. SIC says business services
+CERN,804753,Health Care,Cerner. SIC says computer systems design
+RHT,1087423,Information Technology,Red Hat. SIC 7370 is mostly internet media today
+NLSN,1492633,Industrials,Nielsen. SIC says business services
+AMTM,2011286,Industrials,Amentum. SIC says business services
+ESRX,885721,Health Care,Express Scripts: a pharmacy benefit manager. SIC says drug stores
+ESRX,1532063,Health Care,Express Scripts: a pharmacy benefit manager. SIC says drug stores
+MHS,1170650,Health Care,Medco Health Solutions: a pharmacy benefit manager. SIC says drug stores
+LLL,1039101,Industrials,L3 Technologies: defense. SIC says communications equipment
+LLL,1056239,Industrials,L3 Technologies: defense. SIC says communications equipment
+ASH,1305014,Materials,Ashland: specialty chemicals. SIC says chemicals wholesale
+SIAL,90185,Materials,Sigma-Aldrich: specialty chemicals. SIC says chemicals wholesale
+NWL,814453,Consumer Discretionary,Newell Brands: housewares. SIC says plastics products
