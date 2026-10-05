@@ -150,39 +150,42 @@ s += [Spacer(1, 1.2 * cm),
 
 s.append(box([
     P("Summary", ParagraphStyle("abs_h", parent=h2, spaceBefore=0)),
-    P("Everyone has a list of rate-sensitive sectors. This project measures one: the weekly return of every S&P 500 "
-      "sector and sub-industry from 2006 to 2026 against the change in the 10-year Treasury yield, with the market "
-      "held fixed. The number is the return in percent for a 1 point rise in the yield.", abstract),
+    P("Which sectors are hurt when interest rates rise, and which are helped? This project measures it with the "
+      "weekly return of every S&P 500 sector and sub-industry from 2006 to 2026, against the change in the 10-year "
+      "Treasury yield and with the market held fixed. The number is the return in percent for a 1 point rise in "
+      "the yield.", abstract),
     P("There are two ends and a wide middle. Utilities (-3.5) and Real Estate (-3.2) are hurt by rising yields, "
       "Energy (+4.2) and Financials (+2.1) are helped, and the seven sectors between them lie from -1.3 to +1.0, "
       "most of them too close to tell apart. Utilities and Real Estate are on the same side in every five-year "
       "window. Financials are helped from the 2010-2014 window on, Energy mostly since 2022, Technology only "
       "before 2017.",
       abstract),
-    P("What counts is the yields the market sets. The 2-year yield gives the same order as the 10-year (rank "
-      "correlation 0.96), the fed funds target gives none (-0.07). Energy reacts to expected inflation and not to "
-      "real yields. Inside the sectors the sub-industries spread as wide as the "
-      "sectors do: gold and homebuilders behave like utilities, hotel REITs do not behave like REITs. An order by "
-      "sign and size, from most hurt to most helped, holds from one decade to the next (0.78 for sectors). An "
-      "order by size alone does not (0.34).", abstract),
+    P("The order does not depend on how it is measured. The 2-year yield gives the same order as the 10-year "
+      "(rank correlation 0.96), and so do daily, four-week and 13-week returns (0.89 to 0.95), with larger numbers "
+      "the longer the return. Energy reacts to expected inflation and not to real yields. Inside the sectors the "
+      "sub-industries spread as wide as the sectors do: gold and homebuilders behave like utilities, hotel REITs "
+      "do not behave like REITs.", abstract),
+    P("An order by sign and size, from most hurt to most helped, holds from one decade to the next (0.78 for "
+      "sectors). An order by size alone does not (0.34). And the best guess of a beta in the coming years is the "
+      "one measured on the longest window, not on the last three or five years.", abstract),
 ]))
 
 # 1
 s.append(P("1. The question", h1))
-s.append(P("Utilities and REITs are bond proxies, banks like higher rates, growth stocks are long duration. These "
-           "are things everyone says and few have measured. There are three questions here. Which sectors are hurt "
-           "and which are helped when rates rise, and by how much? Is the order the same in 2010 and in 2025? And "
-           "which rate is it: the long yield, the short yield, or the rate the Fed sets? The use is practical. A "
-           "model that has the sector of a stock as a number needs an order for the sectors, and how they react to "
-           "rates is one candidate for it."))
+s.append(P("Utilities and REITs are called bond proxies, banks are said to like higher rates, and growth stocks are "
+           "said to be long duration. These rules of thumb can be checked with free data, and this project does "
+           "that for twenty years of the S&P 500. There are three questions. Which sectors are hurt and which are "
+           "helped when rates rise, and by how much? Is the order the same in 2010 and in 2025? And how should it "
+           "be measured: with which yield, over which return horizon, and on how long a window? The use is "
+           "practical. A model that has the sector of a stock as a number needs an order for the sectors, and how "
+           "they react to rates is one candidate for it."))
 
 # 2
 s.append(P("2. Data and method", h1))
 s.append(P("The stocks are the S&P 500 members from 2006 to September 2026, each for the weeks it was in the index "
            "(point-in-time members from fja05680/sp500). The prices are the ones built for the insider project, daily "
            "closes with dividends from Yahoo Finance, and from Tiingo for companies that are no longer listed: 792 "
-           "price series, about 455 stocks in a week. Yields are the daily par yields from treasury.gov, the fed "
-           "funds rate is from the New York Fed."))
+           "price series, about 455 stocks in a week. Yields are the daily par yields from treasury.gov."))
 s.append(P("Today's members have a GICS sector and sub-industry on a public list. The companies that left the index "
            "are on no free list, so the 277 price series of those get a sector from their SIC code at the SEC, through "
            "a hand-made table of code ranges, and 17 of them by hand. On today's members, where both are known, "
@@ -208,45 +211,63 @@ s.append(P("Figure 2 has the eleven sectors from most hurt to most helped. Utili
            "Care (-1.2) are on the hurt side with t-values of -3.1 and -2.7, and Industrials (+0.6) and Technology "
            "(+1.0) on the helped side with 2.4 and 2.3. Consumer Discretionary, Materials and Communication Services "
            "cannot be told from zero."))
+s.append(P("The order does not depend on how it is measured. With SPY as the market, without 2008, 2009 and 2020, "
+           "or with today's members only, the sector order has a rank correlation of 0.91 to 0.95 with the one in "
+           "Figure 2. The companies that left do move the numbers, by up to 1.0: with today's members only Energy "
+           "is +3.1 and not +4.2, Financials +1.5 and not +2.1, Materials +0.1 and not +0.6, and Consumer "
+           "Discretionary -1.5 and not -1.0."))
+s.append(P("Nor does it depend on the return horizon (Figure 3). With daily returns the order has a rank "
+           "correlation of 0.89 with the weekly one, with four-week returns 0.95 and with 13-week returns 0.92. "
+           "The numbers grow with the horizon. Utilities lose 2.9% with daily returns, 3.5% with weekly and 4.4 to "
+           "4.6% with the longer ones, and Financials gain 2.1%, 2.1%, 2.4% and 3.2%. Longer returns also catch "
+           "what follows in the weeks after a move in yields, and the trends that yields and a sector share. "
+           "Energy is the extreme: +3.8 with daily returns and +10.5 over 13 weeks, where the oil price and yields "
+           "follow the same inflation. Daily returns are the most precise, nine of the eleven sectors have a "
+           "t-value beyond 2 with them. Technology is the one that depends on the horizon: +1.0 with weekly and "
+           "four-week returns, and +0.2 and +0.3 with daily and 13-week returns, which is no different from zero."))
 s.append(figure(FIG / "sectors.png", "Figure 2. Black: the whole period with its 95% interval. Blue: the two halves "
                 "on their own.", width=TEXT_W * 0.9))
-s.append(P("The order does not depend on how it is measured. With SPY as the market, with four-week returns, without "
-           "2008, 2009 and 2020, or with today's members only, the sector order has a rank correlation of 0.91 to "
-           "0.95 with the one in Figure 2. The companies that left do move the numbers, by up to 1.0: with today's "
-           "members only Energy is +3.1 and not +4.2, Financials +1.5 and not +2.1, Materials +0.1 and not +0.6, "
-           "and Consumer Discretionary -1.5 and not -1.0."))
+s.append(figure(FIG / "horizons.png", "Figure 3. One row per sector, the grey line runs from the smallest to the "
+                "largest of the four.", width=TEXT_W * 0.9))
 
 s.append(P("3.2 Over time", h2))
-s.append(P("The blue points in Figure 2 show that the two halves do not agree everywhere, and Figure 3 shows when "
+s.append(P("The blue points in Figure 2 show that the two halves do not agree everywhere, and Figure 4 shows when "
            "it changed. Utilities and Real Estate are hurt in every five-year window since 2006, most in the years "
            "of low yields before 2020, when a 1 point rise cost them 8 to 10%, and about 4% now. Consumer Staples "
            "are also on the hurt side throughout."))
-s.append(figure(FIG / "rolling.png", "Figure 3. Five-year windows, moved one year at a time. The same scale in every "
-                "panel.", width=TEXT_W))
 s.append(P("The helped end is younger. Financials were on the hurt side in the four windows that end in 2010 to "
            "2013 and have been helped in every window since, +3.4 over 2017 to 2026 (t = 6.6). Energy was between 0 "
            "and +3 in every window that ends in 2021 or before, and has been at +7 to +9 since. Technology went the "
            "other way: +2.2 from 2006 to 2016 (t = 4.0), negative in the windows that end in 2022 to 2025, and "
-           "-0.3 over 2017 to 2026 (t = -0.5). Health Care joined the hurt side after 2020. A list of rate-sensitive sectors made in "
-           "2013 would have had Technology among the helped and Financials among the hurt."))
+           "-0.3 over 2017 to 2026 (t = -0.5). Health Care joined the hurt side after 2020. A list of rate-sensitive "
+           "sectors made in 2013 would have had Technology among the helped and Financials among the hurt."))
+s.append(figure(FIG / "rolling.png", "Figure 4. Five-year windows, moved one year at a time. The same scale in every "
+                "panel.", width=TEXT_W))
+s.append(P("Since the betas move, a short window could be a better guide to the next years than the whole history. "
+           "It is not (Figure 5). At the end of every year from 2015 to 2021 the betas were estimated on the last "
+           "3, 5 and 10 years and on everything since 2006, and compared with the betas measured over the "
+           "following five years. The longest window has the smallest error, 2.4 points of beta against 2.7 to 2.9 "
+           "for sectors and 4.1 against 4.4 to 5.0 for sub-industries, and it gets the sign of a sector right in "
+           "88% of the cases against 77 to 81%. In ranking the short windows are as good or a little better: 0.74 and "
+           "0.76 against 0.72 for sectors, 0.51 and 0.52 against 0.45 for sub-industries. With seven overlapping "
+           "starting years that is not much to go on. A short window follows a "
+           "shift faster and pays for it with noise in all the sectors that did not shift. What the long window "
+           "gets wrong is the size after a shift: Energy is +4.2 over the whole period and +7.7 over the last "
+           "five years."))
+s.append(figure(FIG / "windows.png", "Figure 5. Seven starting years, the 11 sectors and about 107 sub-industries. "
+                "With the following three years as the target the longest window also has the smallest error.", width=TEXT_W * 0.92))
 
 s.append(P("3.3 Which rate", h2))
-s.append(P("The 2-year yield tells the same story as the 10-year (Figure 4): the two sector orders have a rank "
-           "correlation of 0.96. The numbers are a little smaller for Utilities and Real Estate (-3.0 and -2.3) and "
-           "larger for Financials, +2.7 with a t-value of 3.9. The fed funds rate tells none. Against the target the "
-           "sector order has a rank correlation of -0.07 with the order in Figure 2, and no sector has a t-value "
-           "beyond 2. Against the effective rate it is -0.05. The target moved in 46 of the 1,083 weeks, and most moves "
-           "were expected before they came, so the stocks had already reacted. Stocks follow the rates the market expects, and the 2-year yield is the free "
-           "measure of that."))
-s.append(P("Figure 5 splits the 10-year yield in two ways. First into the 2-year yield and the slope of the curve. "
+s.append(P("The 2-year yield tells the same story as the 10-year: the two sector orders have a rank correlation of "
+           "0.96. The numbers are a little smaller for Utilities and Real Estate (-3.0 and -2.3) and larger for "
+           "Financials, +2.7 with a t-value of 3.9."))
+s.append(P("Figure 6 splits the 10-year yield in two ways. First into the 2-year yield and the slope of the curve. "
            "Utilities, Real Estate and Energy react to both by about the same amount, so for them the 10-year is the "
            "right rate. Consumer Staples, Health Care, Technology and Financials react to the 2-year and not to the "
            "slope: Financials gain 2.9% for a 1 point rise in the 2-year (t = 3.4) and nothing measurable for a "
            "steeper curve, which is not what the textbook on bank margins says. Industrials, Materials and "
            "Communication Services react to the slope only."))
-s.append(figure(FIG / "rates.png", "Figure 4. One regression per rate, each with the market held fixed.",
-                width=TEXT_W * 0.9))
-s.append(figure(FIG / "parts.png", "Figure 5. Left: the 2-year yield and the slope together. Right: the real yield "
+s.append(figure(FIG / "parts.png", "Figure 6. Left: the 2-year yield and the slope together. Right: the real yield "
                 "and expected inflation together. The breakeven is the 10-year yield minus the 10-year real yield.",
                 width=TEXT_W))
 s.append(P("The second split is into the real yield and expected inflation. Energy gains 14.8% for a 1 point rise "
@@ -256,13 +277,13 @@ s.append(P("The second split is into the real yield and expected inflation. Ener
            "yield and Health Care loses on it. Utilities and Real Estate lose on both."))
 
 s.append(P("3.4 Inside the sectors", h2))
-s.append(P("Today's S&P 500 has 126 sub-industries, and 121 have enough weeks for a beta (Figure 6). They spread as "
+s.append(P("Today's S&P 500 has 126 sub-industries, and 121 have enough weeks for a beta (Figure 7). They spread as "
            "wide inside a sector as the sectors do between them: only 42% of the spread between sub-industries is "
            "between sectors. Gold (-8.8) sits in Materials next to commodity chemicals (+7.3). Homebuilders (-5.8) "
            "sit in Consumer Discretionary and react like a utility. In Real Estate the data center, storage and "
            "tower REITs are at -5 to -8 while hotel REITs are at +0.7. In Financials the banks and investment banks "
            "(+3.0 to +5.4) carry the sector, and insurance brokers, payment companies and exchanges are near zero."))
-s.append(figure(FIG / "subs.png", "Figure 6. Sub-industries of today's members. 23 have one stock, 36 have five or "
+s.append(figure(FIG / "subs.png", "Figure 7. Sub-industries of today's members. 23 have one stock, 36 have five or "
                 "more.", width=TEXT_W * 0.92))
 s.append(table(ends_table(), [4.55 * cm, 2.2 * cm, 1.65 * cm, 4.55 * cm, 2.2 * cm, 1.65 * cm],
                "Table 1. The eight most hurt and the eight most helped sub-industries with at least three stocks today. "
@@ -270,7 +291,7 @@ s.append(table(ends_table(), [4.55 * cm, 2.2 * cm, 1.65 * cm, 4.55 * cm, 2.2 * c
 s.append(P("These numbers are noisier than the sector ones. 50 of the 121 have a t-value beyond 2, and a sub-industry "
            "with one or two stocks is close to a single company. For an order, each beta is therefore pulled toward "
            "the beta of its sector, more the less precisely it is measured (data/order.csv has both)."))
-s.append(P("Figure 7 asks whether the order holds. Sorted from most hurt to most helped, the sector order of 2006 to "
+s.append(P("Figure 8 asks whether the order holds. Sorted from most hurt to most helped, the sector order of 2006 to "
            "2016 has a rank correlation of 0.78 with the order of 2017 to 2026, and the sub-industry order 0.47. "
            "Sorted by the size of the reaction alone the same numbers are 0.34 and 0.25. The sign carries the "
            "order: banks and utilities both react strongly, in opposite directions, and how strongly changes more "
@@ -280,8 +301,8 @@ s.append(P("The last test is the practical one. Make an order on 2006 to 2016 an
            "of its sector, gets a rank correlation of 0.44. Sorting the sub-industries inside their sector adds "
            "little, 0.46. One axis for all sub-industries, whatever their sector, gets 0.53. So most of what holds "
            "is in the sector, and the fine order inside a sector is mostly noise from one decade to the next."))
-s.append(figure(FIG / "stability.png", "Figure 7. Left: the 105 sub-industries with a beta in both halves. Right: "
-                "the same comparison as one number, for sectors and for sub-industries.", width=TEXT_W))
+s.append(figure(FIG / "stability.png", "Figure 8. Left: the 105 sub-industries with a beta in both halves. Right: "
+                "the same comparison as one number, for sectors and for sub-industries.", width=TEXT_W * 0.93))
 
 # 4
 s.append(P("4. What it says", h1))
@@ -292,9 +313,10 @@ s.append(P("Sorted by how they react to rates, the sectors are: Utilities, Real 
            "only since 2022. The seven in the middle should not be read as more than three groups: Staples and "
            "Health Care a little hurt, Industrials a little helped, the rest neutral. Technology is among the "
            "neutral ones, since its sign did not hold."))
-s.append(P("For a model the order should be by sign and size, not by size, and it should not be treated as fixed. "
-           "The rate to use is the 2-year or the 10-year yield, the fed funds rate gives nothing. And a sector is a rough "
-           "bucket for this: gold, homebuilders and hotel REITs are in the wrong one."))
+s.append(P("For a model the order should be by sign and size, not by size, and it should be measured on the longest "
+           "window there is: a shorter one follows the shifts faster and is further off on average. The 2-year and "
+           "the 10-year yield give the same order, and so do daily, weekly and quarterly returns. And a sector is a "
+           "rough bucket for this: gold, homebuilders and hotel REITs are in the wrong one."))
 s += bullets(lead="The limits:", items=[
     "The companies that left the index have a sector from their SIC code, and about one in nine of those is wrong. "
     "Companies without a free price history are missing, among them the banks that failed in 2008, so Financials "
@@ -314,7 +336,7 @@ s.append(Spacer(1, 4))
 s.append(P("Code: github.com/Viktorsadowski/rate-sensitive-sectors, three scripts on top of the price data of "
            "insider-trade-worth (run order in the README). Data: S&P 500 history from github.com/fja05680/sp500, "
            "today's members from github.com/datasets/s-and-p-500-companies, prices from Yahoo Finance and Tiingo, "
-           "yields from treasury.gov, the fed funds rate from the New York Fed, SIC codes from the SEC. Nothing "
+           "yields from treasury.gov, SIC codes from the SEC. Nothing "
            "licensed. data/results.csv has every beta, also the ones not shown here.", caption))
 
 

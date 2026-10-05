@@ -41,8 +41,6 @@ SEC_COMPANY_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 # daily par yield curve, one csv per year. type is daily_treasury_yield_curve or daily_treasury_real_yield_curve
 TREASURY_URL = ("https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/"
                 "{year}/all?type={type}&field_tdr_date_value={year}&page&_format=csv")
-# effective fed funds rate and the target, from the New York Fed
-EFFR_URL = "https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json?startDate={start}&endDate={end}&type=rate"
 # today's S&P 500 members with GICS sector and sub-industry
 MEMBERS_URL = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
 

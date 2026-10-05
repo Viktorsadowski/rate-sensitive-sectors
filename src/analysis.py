@@ -3,11 +3,12 @@
 Which sectors are rate-sensitive: the numbers and the charts.
 
   data/results.csv     every rate beta: level (sector or sub), bucket, rate, period, spec, beta, se, t,
-                       beta to the market, weeks, stocks
+                       beta to the market, weeks (days for the daily spec), stocks
   data/order.csv       the sub-industries in order: sector, sub, beta, se, the beta pulled toward its sector,
                        and its place in the nested and in the flat order
   data/rolling.csv     sector betas over five-year windows
   data/stability.csv   does an order made on 2006-2016 hold in 2017-2026
+  data/windows.csv     which window is the best guess of the next years' betas: 3, 5, 10 years or everything
   figures/*.png
 
 The rate beta of a bucket: its weekly return regressed on the weekly return of the average S&P 500 stock and the
@@ -18,6 +19,7 @@ unchanged market. Weeks end on Wednesday. Standard errors are Newey-West with 4 
 """
 
 import textwrap
+from functools import lru_cache
 
 import matplotlib
 matplotlib.use("Agg")
@@ -31,17 +33,17 @@ from config import (BENCHMARK, BLUE, DATA_DIR, FIG_DIR, FIRST_YEAR, GRID, INK, L
 
 LIGHT_BLUE = "#9dbfeb"       # BLUE at 45%
 ALL = f"{FIRST_YEAR}-2026"
-RATES = {"y10": "10-year yield", "y2": "2-year yield", "y3m": "3-month bill", "target": "fed funds target",
-         "effr": "effective fed funds rate", "r10": "10-year real yield", "be10": "10-year breakeven inflation"}
+LONG_WEEKS = (4, 13)         # the longer return horizons that are checked, in weeks
+AHEAD = (3, 5)               # the window test: how many years ahead the beta is compared with
+RATES = {"y10": "10-year yield", "y2": "2-year yield", "y3m": "3-month bill", "r10": "10-year real yield",
+         "be10": "10-year breakeven inflation"}
 
 
 # ── the weekly panel ───────────────────────────────────────────────────────────
 
-def weekly_panel():
-    """
-    ret: weekly return per stock (weeks x tickers), only for stocks that were S&P 500 members when the week started.
-    dy: weekly change in every rate. spy: weekly return of SPY. All in percent or percentage points.
-    """
+@lru_cache(maxsize=1)
+def load_prices():
+    """days, total return index per ticker, who was a member on which day, and the yields on those days"""
     p = pd.read_parquet(PRICE_DIR / "prices.parquet")
     p["date"] = pd.to_datetime(p["date"])
     days = pd.DatetimeIndex(sorted(p.loc[p.ticker == BENCHMARK, "date"].unique()))
@@ -61,6 +63,18 @@ def weekly_panel():
         if not v and tk in member.columns:
             member.loc[days.year == y, tk] = False
 
+    y = pd.read_csv(DATA_DIR / "yields.csv", parse_dates=["date"]).set_index("date")
+    y["slope"] = y.y10 - y.y2
+    y["be10"] = y.y10 - y.r10
+    return days, adj, member, y.reindex(days).ffill()
+
+
+def weekly_panel():
+    """
+    ret: weekly return per stock (weeks x tickers), only for stocks that were S&P 500 members when the week started.
+    dy: weekly change in every rate. spy: weekly return of SPY. All in percent or percentage points.
+    """
+    days, adj, member, y = load_prices()
     # weeks end on wednesday, or on the last trading day before it. A week that has not ended yet is dropped
     last_day = adj.index.to_series().resample("W-WED").last()
     done = last_day.notna() & (last_day.index <= days[-1])
@@ -71,13 +85,17 @@ def weekly_panel():
     spy = wk[BENCHMARK].pct_change() * 100
     keep = ret.index.year >= FIRST_YEAR
     ret, spy = ret[keep].drop(columns=BENCHMARK), spy[keep]
-
-    y = pd.read_csv(DATA_DIR / "yields.csv", parse_dates=["date"]).set_index("date")
-    y["slope"] = y.y10 - y.y2
-    y["be10"] = y.y10 - y.r10
-    yw = y.reindex(days).ffill().reindex(wk.index)
+    yw = y.reindex(wk.index)
     dy = yw.diff()[keep]
     return ret, dy, spy, yw[keep]
+
+
+def daily_panel():
+    """the same with one row per trading day, for the check with daily returns: ret and dy"""
+    days, adj, member, y = load_prices()
+    ret = adj.pct_change(fill_method=None).where(member.shift(1, fill_value=False)) * 100
+    keep = ret.index.year >= FIRST_YEAR
+    return ret[keep].drop(columns=BENCHMARK), y.diff()[keep]
 
 
 def class_of(ret: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -114,7 +132,7 @@ def ols_nw(y, X, lags=4):
     ok = np.isfinite(y) & np.isfinite(X).all(axis=1)
     y, X = y[ok], X[ok]
     k = X.shape[1]
-    # too few weeks, or a rate that did not move in them (the fed funds target from 2009 to 2015)
+    # too few weeks, or a rate that did not move in them
     if len(y) < MIN_WEEKS or np.linalg.matrix_rank(X) < k:
         return np.full(k, np.nan), np.full(k, np.nan), len(y)
     b, *_ = np.linalg.lstsq(X, y, rcond=None)
@@ -128,13 +146,13 @@ def ols_nw(y, X, lags=4):
     return b, np.sqrt(np.diag(XtXi @ S @ XtXi)), len(y)
 
 
-def rate_betas(R, mkt, dy, rate=MAIN_RATE, sel=None, market=True) -> pd.DataFrame:
+def rate_betas(R, mkt, dy, rate=MAIN_RATE, sel=None, market=True, lags=4) -> pd.DataFrame:
     """one row per bucket: beta to the rate, its standard error and t, beta to the market, weeks"""
     sel = np.ones(len(R), bool) if sel is None else np.asarray(sel)
     rows = []
     for b in R.columns:
         cols = [np.ones(sel.sum())] + ([mkt.values[sel]] if market else []) + [dy[rate].values[sel]]
-        coef, se, n = ols_nw(R[b].values[sel], np.column_stack(cols))
+        coef, se, n = ols_nw(R[b].values[sel], np.column_stack(cols), lags)
         rows.append({"bucket": b, "beta": coef[-1], "se": se[-1], "t": coef[-1] / se[-1],
                      "mkt_beta": coef[1] if market else np.nan, "weeks": n})
     return pd.DataFrame(rows).set_index("bucket")
@@ -156,9 +174,10 @@ def rank_corr(a, b) -> float:
     return float(pd.Series(np.asarray(a, float)).rank().corr(pd.Series(np.asarray(b, float)).rank()))
 
 
-def four_weeks(x: pd.Series, how: str) -> pd.Series:
-    g = np.arange(len(x)) // 4
-    return x.groupby(g).sum() if how == "sum" else ((1 + x / 100).groupby(g).prod(min_count=4) - 1) * 100
+def over(x: pd.Series, k: int, how: str) -> pd.Series:
+    """a weekly series over the last k weeks, one value per week so they overlap: the compounded return ("prod")
+    or the summed change ("sum")"""
+    return x.rolling(k).sum() if how == "sum" else (np.exp(np.log1p(x / 100).rolling(k).sum()) - 1) * 100
 
 
 def pull_to_sector(sub: pd.DataFrame) -> pd.Series:
@@ -201,9 +220,14 @@ def results():
     add(rate_betas(S, mkt, dy, market=False), "sector", MAIN_RATE, ALL, "market not held fixed", NS)
     calm = ~ret.index.year.isin([2008, 2009, 2020])
     add(rate_betas(S, mkt, dy, sel=calm), "sector", MAIN_RATE, ALL, "without 2008, 2009 and 2020", NS)
-    S4 = pd.DataFrame({c: four_weeks(S[c], "prod") for c in S})
-    add(rate_betas(S4, four_weeks(mkt, "prod"), pd.DataFrame({MAIN_RATE: four_weeks(dy[MAIN_RATE], "sum")})),
-        "sector", MAIN_RATE, ALL, "four-week returns", NS)
+    # other return horizons. Daily, and 4 and 13 weeks: those overlap, so the standard errors get more lags
+    dret, ddy = daily_panel()
+    SD, _ = buckets(dret, class_of(dret, "sector"))
+    add(rate_betas(SD, dret.mean(axis=1), ddy, lags=5), "sector", MAIN_RATE, ALL, "daily returns", NS)
+    for k in LONG_WEEKS:
+        Sk = pd.DataFrame({c: over(S[c], k, "prod") for c in S})
+        add(rate_betas(Sk, over(mkt, k, "prod"), pd.DataFrame({MAIN_RATE: over(dy[MAIN_RATE], k, "sum")}),
+                       lags=2 * k), "sector", MAIN_RATE, ALL, f"{k}-week returns", NS)
     # only today's members: what the sectors look like without the companies that left
     c = pd.read_csv(DATA_DIR / "classes.csv", keep_default_na=False)
     stay = sorted(set(c.ticker[c.source == "list"]) & set(ret.columns))
@@ -258,7 +282,8 @@ def results():
     o.to_csv(DATA_DIR / "order.csv")
 
     stability(res, o, periods)
-    return res, o, roll, pair, (ret, dy, mkt, yw)
+    win = window_test({"sector": S, "sub-industry": U}, mkt, dy)
+    return res, o, roll, pair, win, (ret, dy, mkt, yw)
 
 
 def stability(res, o, periods):
@@ -288,6 +313,39 @@ def stability(res, o, periods):
     st = pd.DataFrame(rows)
     st.to_csv(DATA_DIR / "stability.csv", index=False)
     print(st.round(2).to_string(index=False))
+
+
+def window_test(levels: dict, mkt, dy) -> pd.DataFrame:
+    """
+    Which window is the best guess of the beta that comes next? At the end of every year the betas are estimated
+    on the last 3, 5 and 10 years and on everything since the start, and each estimate is compared with the betas
+    measured over the following years: rank correlation, error (root mean square) and share with the right sign.
+    Only the years where all four windows exist, so they are compared on the same ground.
+    """
+    years = mkt.index.year
+    everything = f"all since {FIRST_YEAR}"
+    rows = []
+    for level, R in levels.items():
+        beta = lambda y0, y1: rate_betas(R, mkt, dy, sel=(years >= y0) & (years <= y1)).beta
+        for ahead in AHEAD:
+            for end in range(FIRST_YEAR + 9, years.max()):
+                # the years after have to be there: the last year in the data is not a full one
+                if ((years > end) & (years <= end + ahead)).sum() < max(MIN_WEEKS, 0.9 * 52 * ahead):
+                    continue
+                after = beta(end + 1, end + ahead)
+                est = {"3 years": beta(end - 2, end), "5 years": beta(end - 4, end), "10 years": beta(end - 9, end),
+                       everything: beta(FIRST_YEAR, end)}
+                ok = after.notna() & pd.concat(est, axis=1).notna().all(axis=1)
+                for name, e in est.items():
+                    rows.append({"level": level, "ahead": ahead, "end": end, "window": name, "buckets": int(ok.sum()),
+                                 "rank_corr": rank_corr(e[ok], after[ok]),
+                                 "error": float(np.sqrt(((e[ok] - after[ok]) ** 2).mean())),
+                                 "right_sign": float((np.sign(e[ok]) == np.sign(after[ok])).mean())})
+    win = pd.DataFrame(rows)
+    win.to_csv(DATA_DIR / "windows.csv", index=False)
+    t = win.groupby(["level", "ahead", "window"], sort=False)[["rank_corr", "error", "right_sign"]].mean()
+    print(t.round(2).to_string())
+    return win
 
 
 # ── charts ─────────────────────────────────────────────────────────────────────
@@ -407,17 +465,16 @@ def fig_yields(yw, roll):
     fig, axes = new(10.4, 3.2, ncols=2, gridspec_kw={"width_ratios": [1.6, 1]})
     ax = axes[0]
     style(ax)
-    ax.plot(yw.index, yw.target, color=LIGHT_GREY, lw=1.6, drawstyle="steps-post")
     ax.plot(yw.index, yw.y2, color=LIGHT_BLUE, lw=1.6)
     ax.plot(yw.index, yw.y10, color=BLUE, lw=1.8)
-    last = yw.dropna(subset=["y10", "y2", "target"]).iloc[-1]
-    for v, lab, col in ((last.y10, "10-year", BLUE), (last.y2, "2-year", "#5c93dd"), (last.target, "fed funds\ntarget", MUTED)):
+    last = yw.dropna(subset=["y10", "y2"]).iloc[-1]
+    for v, lab, col in ((last.y10, "10-year", BLUE), (last.y2, "2-year", "#5c93dd")):
         ax.annotate(lab, (yw.index[-1], v), xytext=(5, 0), textcoords="offset points", fontsize=FS_NUM, color=col,
-                    va="center", linespacing=1.1, annotation_clip=False)
+                    va="center", annotation_clip=False)
     ax.set_xlim(yw.index[0], yw.index[-1])
     ax.yaxis.set_major_formatter(lambda v, _: f"{v:.0f}%")
     ax.set_ylim(0, None)
-    title(ax, "Treasury yields and the fed funds target")
+    title(ax, "Treasury yields")
 
     ax = axes[1]
     style(ax)
@@ -494,28 +551,70 @@ def fig_rolling(roll, res):
     save(fig, "rolling.png")
 
 
-def fig_rates(res):
-    """the same sectors on three rates: the 10-year, the 2-year and the fed funds target"""
+def fig_horizons(res):
+    """the same betas with returns over a day, a week, four weeks and a quarter. One row per sector, the grey
+    line runs from the smallest to the largest of the four"""
     a = sector_table(res).sort_values("beta")
+    specs = [("daily returns", "1 day"), ("base", "1 week")] + [(f"{k}-week returns", f"{k} weeks") for k in LONG_WEEKS]
+    shades = ("#bcd4f3", "#6fa3e3", BLUE, "#143a6b")          # light to dark: short to long
+    b = pd.DataFrame({lab: sector_table(res, spec=spec).beta for spec, lab in specs}).loc[a.index]
     fig, ax = new(8.4, 3.7)
     style(ax, "x")
     y = np.arange(len(a))[::-1]
     ax.axvline(0, color=MUTED, lw=0.8, zorder=1)
-    for k, (rate, col, lab) in enumerate((("y10", INK, "10-year yield"), ("y2", BLUE, "2-year yield"),
-                                          ("target", ORANGE, "fed funds target"))):
-        t = sector_table(res, rate=rate).loc[a.index]
-        dots(ax, t.beta, y + (1 - k) * 0.2, t.t, col, lab)
+    ax.hlines(y, b.min(axis=1), b.max(axis=1), color=LIGHT_GREY, lw=1.4, zorder=2)
+    for lab, col in zip(b.columns, shades):
+        ax.scatter(b[lab], y, s=44, color=col, edgecolor=SURFACE, linewidth=0.7, zorder=4, label=lab)
     ax.set_yticks(y)
     ax.set_yticklabels(a.index, fontsize=FS, color=INK)
     ax.tick_params(axis="y", length=0)
     ax.set_ylim(-0.7, len(a) - 0.3)
-    xlab(ax, "return in % for a 1 point rise in the rate, at an unchanged market")
-    ends(ax, "hurt by a rise", "helped by a rise")
+    xlab(ax, UNIT.replace("the yield", "the 10-year yield"))
+    ends(ax)
     legend_below(fig, ax)
-    head(fig, "The 2-year tells the same story, the fed funds rate tells none",
-         f"The same regression with three different rates, {FIRST_YEAR} to 2026. Filled: t-value beyond 2. The fed "
-         "funds target moved in few weeks, and most of those moves were expected before they came.", panels=False)
-    save(fig, "rates.png")
+    corr = ", ".join(f"{rank_corr(b['1 week'], b[c]):.2f}" for c in b.columns if c != "1 week")
+    head(fig, "Daily, weekly or quarterly returns: the same order, larger numbers",
+         f"The same regression with returns over one day, one week, {LONG_WEEKS[0]} weeks and {LONG_WEEKS[1]} weeks "
+         f"(the longer ones overlap), {FIRST_YEAR} to 2026. Rank correlation with the weekly order: {corr}.",
+         panels=False)
+    save(fig, "horizons.png")
+
+
+def fig_windows(win):
+    """the window test in two panels: how far off each window is, and how well it ranks, for the betas of the
+    following five years. Sectors and sub-industries"""
+    ahead = max(AHEAD)
+    w = win[win.ahead == ahead]
+    t = w.groupby(["level", "window"], sort=False)[["error", "rank_corr"]].mean()
+    names = list(w.window.unique())
+    x = np.arange(len(names))
+    fig, axes = new(9.6, 3.3, ncols=2)
+    for ax, col, ttl, fmt in zip(axes, ("error", "rank_corr"),
+                                 (f"How far off the beta of the next {ahead} years", "How well it ranks them"),
+                                 ("{:.1f}", "{:.2f}")):
+        style(ax)
+        for level, c, lab in (("sector", BLUE, "sectors"), ("sub-industry", ORANGE, "sub-industries")):
+            v = t.loc[level].loc[names, col].values
+            ax.plot(x, v, color=c, lw=2, marker="o", ms=5.5, zorder=3, label=lab)
+            for xi, vi in zip(x, v):
+                ax.annotate(fmt.format(vi), (xi, vi), xytext=(0, 7), textcoords="offset points", ha="center",
+                            fontsize=FS_NUM, color=INK)
+        ax.set_xticks(x)
+        ax.set_xticklabels(names)
+        ax.set_xlim(-0.35, len(names) - 0.65)
+        ax.set_ylim(0, 1 if col == "rank_corr" else t[col].max() * 1.22)
+        xlab(ax, "window the beta is estimated on")
+        title(ax, ttl)
+    ylab(axes[0], "error, in points of beta")
+    ylab(axes[1], "rank correlation")
+    fig.subplots_adjust(wspace=0.24)
+    legend_below(fig, axes[0])
+    ends_ = sorted(w.end.unique())
+    head(fig, "The longest window misses least and ranks about as well",
+         f"At the end of every year from {ends_[0]} to {ends_[-1]} the rate betas are estimated on four windows and "
+         f"compared with the betas measured over the following {ahead} years. Averages over those years. Left: root "
+         "mean square error. Right: rank correlation across the buckets.")
+    save(fig, "windows.png")
 
 
 def fig_parts(pair, res):
@@ -637,7 +736,7 @@ def fig_stability(o):
 
 
 def main():
-    res, o, roll, pair, panel = results()
+    res, o, roll, pair, win, panel = results()
     pd.set_option("display.width", 200)
     base = res[(res.level == "sector") & (res.spec == "base") & (res.rate == MAIN_RATE)]
     print(base.pivot(index="bucket", columns="period", values="beta").sort_values(ALL).round(2).to_string())
@@ -645,8 +744,9 @@ def main():
     ret, dy, mkt, yw = panel
     fig_yields(yw, roll)
     fig_sectors(res)
+    fig_horizons(res)
     fig_rolling(roll, res)
-    fig_rates(res)
+    fig_windows(win)
     fig_parts(pair, res)
     fig_subs(o, res)
     fig_stability(o)
